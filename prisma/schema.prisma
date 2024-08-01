@@ -15,6 +15,8 @@ datasource db {
 
 model User {
   id String @id() @default(uuid())
+  email String @default("johndoe@gmail.com")
+  password String @default("$2a$10$CP9rKOpQXaWmq5RJYvO1pe0n0DI1.MEGD6aYv.7u8njvlLMNs0nUW")
   likes Like[]
   comments Comment[]
   Message Message[]

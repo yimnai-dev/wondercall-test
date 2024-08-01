@@ -1,7 +1,11 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { prisma } from './prisma-client'
-import { addCommentBodySchema, createMessageBodySchema, likeMessageSchema } from './schema'
+import { addCommentBodySchema, createMessageBodySchema, likeMessageSchema, signInSchema } from './schema'
+import { decode, sign, verify } from 'hono/jwt'
+import bcrypt from 'bcrypt'
+
+const SECRET_KEY = '7c082e19-002f-48a3-a2a7-6b00b8c1d04b'
 
 const app = new Hono()
 
@@ -25,6 +29,45 @@ app.post('/users/create', async (c) => {
       error
     }, 500)
   }
+})
+
+// Signin
+app.post('/signin', async (c) => {
+  const body = await c.req.json()
+  const parsedBody = signInSchema.safeParse(body)
+  if(!parsedBody.success) {
+    return c.json({
+      error: parsedBody.error.message
+    }, 400)
+  }
+  const { email, password  } = parsedBody.data
+  const user = await prisma.user.findFirst({
+    where: {
+      email
+    }
+  })
+  if(!user) {
+    return c.json({
+      error: 'No user with that email exists'
+    })
+  }
+  const passwordsMatch = await bcrypt.compare(password, user.password)
+  if(!passwordsMatch) {
+    return c.json({
+      error: 'Wrong password'
+    })
+  }
+  const payload = {
+    user: {
+      id: user.id,
+      email: user.email
+    },
+    exp: Math.floor(Date.now() / 1000) + 60 * 5
+  }
+  const token = await sign(payload, SECRET_KEY)
+  return c.json({
+    token
+  }, 200)
 })
 
 app.get('/users/all', async (c) => {

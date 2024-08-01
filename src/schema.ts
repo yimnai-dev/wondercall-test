@@ -13,3 +13,8 @@ export const likeMessageSchema = z.object({
     messageId: z.coerce.number(),
     userId: z.string().trim().uuid(),
 })
+
+export const signInSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(3)
+})
